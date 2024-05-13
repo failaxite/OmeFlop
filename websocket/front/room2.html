@@ -100,9 +100,7 @@
                     call.answer(stream); 
                     const otherVideo = document.createElement('video'); 
                     call.on('stream', otherStream => { 
-                        otherVideo.srcObject = otherStream; 
-                        otherVideo.play(); 
-                        document.querySelector('.video-container').appendChild(otherVideo); 
+                        addVideoStream(otherVideo, otherStream);
                     });
                 });
 
@@ -110,9 +108,7 @@
                     const call = peer.call(userId, stream); 
                     const otherVideo = document.createElement('video'); 
                     call.on('stream', otherStream => { 
-                        otherVideo.srcObject = otherStream; 
-                        otherVideo.play(); 
-                        document.querySelector('.video-container').appendChild(otherVideo); 
+                        addVideoStream(otherVideo, otherStream);
                     });
                 });
             }).catch(error => { 
@@ -132,16 +128,22 @@
                 messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span>: ${data.message}`;
                 messages.appendChild(messageElement);
             });
+
+            function addVideoStream(video, stream) {
+                video.srcObject = stream;
+                video.addEventListener("loadedmetadata", () => {
+                    video.play();
+                    document.querySelector('.video-container').appendChild(video);
+                });
+            }
         });
     </script>
 </head>
 <body>
     <div class="container">
         <div class="video-container">
-            <!-- Votre vidéo -->
-        </div>
-        <div class="video-container">
             <!-- Vidéo de la personne connectée -->
+            <video id="otherVideo" autoplay></video>
         </div>
         <div class="chat-container">
             <ul id="messages"></ul>
