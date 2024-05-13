@@ -1,52 +1,67 @@
 import express from 'express';
-import http from 'http';
-import ip from 'ip';
+import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cors from 'cors';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
 const app = express();
-const server = http.createServer(app);
-const PORT = 3000;
-const io = new Server(server, {
-    cors: {
-        origin: '*',
-        }
-})
-app.use(cors())
+const server = createServer(app);
+const io = new Server(server);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Définir le chemin de base pour les fichiers statiques et HTML
+const basePath = path.join(__dirname, '..', 'front');
+app.use(express.static(path.join(basePath, 'public')));
+
 app.get('/', (req, res) => {
-    res.json('ip address: http://' + ip.address()+':'+PORT);    
+  res.sendFile(path.join(basePath, 'index.html'));
+});
+app.get('/room1', async (req, res) => {
+    const sockets = await io.in('Room1').allSockets();
+    if (sockets.size < 2) {
+        res.sendFile(path.join(basePath, 'room1.html'));
+    } else {
+        res.status(403).send('This room is full. Please try another one.');
+    }
 });
 
+app.get('/room2', async (req, res) => {
+    const sockets = await io.in('Room2').allSockets();
+    if (sockets.size < 2) {
+        res.sendFile(path.join(basePath, 'room2.html'));
+    } else {
+        res.status(403).send('This room is full. Please try another one.');
+    }
+});
+
+
 io.on('connection', (socket) => {
-    console.log('a user connected');
-    socket.broadcast.emit('user connected');
+    console.log(`User ${socket.id} connected`);
+
+    socket.on('joinRoom', async (room) => {
+        const sockets = await io.in(room).allSockets();
+        if (sockets.size < 2) {
+            socket.join(room);
+            console.log(`User ${socket.id} joined room: ${room}`);
+            io.to(socket.id).emit('roomJoined', { room: room, status: 'joined' });
+        } else {
+            console.log(`Room ${room} is full`);
+            io.to(socket.id).emit('roomFull', { room: room, status: 'full' });
+        }
+    });
+
+    socket.on('sendMessage', (data) => {
+        const { room, message } = data;
+        io.to(room).emit('receiveMessage', { message: message, sender: socket.id });
+    });
+
     socket.on('disconnect', () => {
-        console.log('user disconnected');
-        socket.broadcast.emit('user disconnected');
+        console.log(`User ${socket.id} disconnected`);
     });
-    socket.on('message', (msg) => {
-        console.log('message: ' + msg);
-        io.emit('message', msg);
-    });
-    
-    socket.on('room', (room, msg) => {
-        console.log('room: ' + room + ' message: ' + msg);
-        io.to(room).emit('message', msg);
-    });
+});
 
-    socket.on('join', (room) => {
-        console.log('join room: ' + room);
-        socket.join(room);
-        io.to(room).emit('join', room);
-    });
-    socket.on('leave', (room) => {
-        console.log('leave room: ' + room);
-        socket.leave(room);
-        io.to(room).emit('leave', room);
-    });
-})
-
-
-server.listen(PORT, () => {
-    console.log('Server ip : http://' +ip.address() +":" + PORT);
-})
-
+server.listen(3000, () => {
+  console.log('Server listening on :3000');
+});

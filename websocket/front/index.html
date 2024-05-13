@@ -3,44 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Welcome to Chat Rooms</title>
 </head>
 <body>
-    <p>last message</p>
-    <p class="data"></p>
-    <textarea name="" id="" cols="30" rows="10"></textarea>
-    <button onclick="send()">Refresh</button>
+    <h1>Welcome to the Chat Rooms</h1>
+    <button onclick="checkRoomAvailability('room1')">Join Room 1</button>
+    <button onclick="checkRoomAvailability('room2')">Join Room 2</button>
 
+    <script>
+        function checkRoomAvailability(room) {
+    fetch(`/${room}`)
+        .then(response => {
+            if (response.ok) {
+                window.location.href = `/`;
+            } else {
+                alert('This room is full. Please try another one.');
+                setTimeout(() => {
+                    window.location.href = '/'; // Rediriger vers la page d'accueil après 5 secondes
+                }, 5000); // 5000 millisecondes = 5 secondes
+            }
+        })
+        .catch(error => {
+            console.error('Error checking room availability:', error);
+            setTimeout(() => {
+                window.location.href = '/'; // Rediriger vers la page d'accueil après 5 secondes en cas d'erreur
+            }, 5000);
+        });
+}
+
+    </script>
 </body>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
-<script>
-    let i = 0;
-    let room = '';
-    let socketid = '';
-    const text = document.querySelector('textarea');
-    const socket = io('http://localhost:3000');
-    socket.on('connect', () => {
-        console.log('Connected');
-    });
-    socket.on('message', (data) => {
-        console.log(data);
-        document.querySelector('.data').innerText = data;
-    });
-    socket.on('disconnect', () => {
-        console.log('Disconnected');
-    });
-
-    let send = () => {
-        i++;
-        console.log(text.value);
-        //socket.emit('message', `Message ${i}`);
-        socket.emit('room', text.value, `Message room ${i}`);
-    }
-    text.addEventListener('change', (e) => {
-        socket.emit('leave', room);
-        socket.emit('join', e.target.value);
-        room = e.target.value;
-    });
-
-</script>
 </html>
