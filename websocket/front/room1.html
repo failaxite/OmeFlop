@@ -4,32 +4,109 @@
     <meta charset="UTF-8">
     <title>Room 1</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        /* Ajoutez vos styles CSS ici */
+        .own-message {
+            color: red;
+        }
+
+        .other-message {
+            color: blue;
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            height: 100%;
+        }
+
+        .video-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 45%;
+            border: 1px solid #ccc;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #messages {
+            list-style-type: none;
+            padding: 0;
+            width: 100%;
+            height: 70%;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        #messageInput {
+            width: calc(100% - 100px);
+            margin-bottom: 10px;
+        }
+
+        #sendButton {
+            width: 100px;
+            height: 40px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+    </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const socket = io();
-            const roomName = 'Room1'; // Changez en 'Room2' pour room2.html
+            const roomName = 'Room1';
 
             socket.emit('joinRoom', roomName);
 
             document.getElementById('sendButton').addEventListener('click', function() {
                 const message = document.getElementById('messageInput').value;
                 socket.emit('sendMessage', { room: roomName, message: message });
-                document.getElementById('messageInput').value = ''; // Effacer l'input après envoi
+                document.getElementById('messageInput').value = ''; 
             });
 
             socket.on('receiveMessage', function(data) {
                 const messages = document.getElementById('messages');
                 const messageElement = document.createElement('li');
-                messageElement.textContent = `Sender ${data.sender}: ${data.message}`;
+                const sender = data.sender === socket.id ? 'You' : 'Stranger';
+                messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span>: ${data.message}`;
                 messages.appendChild(messageElement);
             });
         });
     </script>
 </head>
 <body>
-    <ul id="messages"></ul>
-    <input type="text" id="messageInput" placeholder="Type your message here...">
-    <button id="sendButton">Send</button>
+    <div class="container">
+        <div class="video-container">
+            <!-- Video streams for users -->
+            <video id="user1Video" autoplay muted></video>
+            <video id="user2Video" autoplay muted></video>
+        </div>
+        <div class="chat-container">
+            <ul id="messages"></ul>
+            <input type="text" id="messageInput" placeholder="Type your message here...">
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
 </body>
 </html>
-
