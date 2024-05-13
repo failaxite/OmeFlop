@@ -15,7 +15,7 @@
     fetch(`/${room}`)
         .then(response => {
             if (response.ok) {
-                window.location.href = `/`;
+                window.location.href = `/${room}`;
             } else {
                 alert('This room is full. Please try another one.');
                 setTimeout(() => {
@@ -26,7 +26,7 @@
         .catch(error => {
             console.error('Error checking room availability:', error);
             setTimeout(() => {
-                window.location.href = '/'; // Rediriger vers la page d'accueil après 5 secondes en cas d'erreur
+                window.location.href = '/' +r; // Rediriger vers la page d'accueil après 5 secondes en cas d'erreur
             }, 5000);
         });
 }

@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 app.get('/room1', async (req, res) => {
     const sockets = await io.in('Room1').allSockets();
     if (sockets.size < 2) {
-        res.sendFile(path.join(basePath, 'room1.html'));
+        res.sendFile(path.join(__dirname, '..', 'front', 'room1.html'));
     } else {
         res.status(403).send('This room is full. Please try another one.');
     }
@@ -30,7 +30,7 @@ app.get('/room1', async (req, res) => {
 app.get('/room2', async (req, res) => {
     const sockets = await io.in('Room2').allSockets();
     if (sockets.size < 2) {
-        res.sendFile(path.join(basePath, 'room2.html'));
+        res.sendFile(path.join(__dirname, '..', 'front', 'room2.html'));
     } else {
         res.status(403).send('This room is full. Please try another one.');
     }
