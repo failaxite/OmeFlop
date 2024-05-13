@@ -4,12 +4,6 @@
     <meta charset="UTF-8">
     <title>Room</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-</head>
-<body>
-    <ul id="messages"></ul>
-    <div id="roomStatus"></div>
-    <input type="text" id="messageInput" placeholder="Type your message here...">
-    <button id="sendButton">Send</button>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const socket = io();
@@ -29,12 +23,13 @@
                 messageElement.textContent = `Sender ${data.sender}: ${data.message}`;
                 messages.appendChild(messageElement);
             });
-
-            socket.on('updateRoomCount', function(data) {
-                const roomStatus = document.getElementById('roomStatus');
-                roomStatus.textContent = `Number of people in the room: ${data.count}`;
-            });
         });
     </script>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <input type="text" id="messageInput" placeholder="Type your message here...">
+    <button id="sendButton">Send</button>
 </body>
 </html>
+
