@@ -7,7 +7,18 @@
 </head>
 <body>
     <h1>Welcome to the Chat Room Hub</h1>
+    <div id="room1Status"></div>
     <button onclick="window.location.href='/room1'">Room 1</button>
+    <div id="room2Status"></div>
     <button onclick="window.location.href='/room2'">Room 2</button>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on('updateRoomCount', function(data) {
+            const roomStatus = document.getElementById(`${data.room}Status`);
+            roomStatus.textContent = `Number of people in the room: ${data.count}`;
+        });
+    </script>
 </body>
 </html>
