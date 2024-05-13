@@ -1,59 +1,52 @@
 import express from 'express';
-import { createServer } from 'http';
+import http from 'http';
+import ip from 'ip';
 import { Server } from 'socket.io';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
+import cors from 'cors';
 const app = express();
-const server = createServer(app);
-const io = new Server(server);
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Définir le chemin de base pour les fichiers statiques et HTML
-const basePath = path.join(__dirname, '..', 'front');
-
-// Serveur les fichiers statiques pour le CSS ou JS si nécessaire
-app.use(express.static(path.join(basePath, 'public')));
-
-// Page d'accueil pour choisir la salle
+const server = http.createServer(app);
+const PORT = 3000;
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        }
+})
+app.use(cors())
 app.get('/', (req, res) => {
-  res.sendFile(path.join(basePath, 'index.html'));
-});
-
-// Page pour la Room 1
-app.get('/room1', (req, res) => {
-  res.sendFile(path.join(basePath, 'room1.html'));
-});
-
-// Page pour la Room 2
-app.get('/room2', (req, res) => {
-  res.sendFile(path.join(basePath, 'room2.html'));
+    res.json('ip address: http://' + ip.address()+':'+PORT);    
 });
 
 io.on('connection', (socket) => {
-    console.log(`User ${socket.id} connected`);
-  
-    // Rejoindre une salle spécifique
-    socket.on('joinRoom', (room) => {
-      socket.join(room);
-      console.log(`User ${socket.id} joined room: ${room}`);
-    });
-  
-    // Écouter les messages envoyés par les clients dans une salle
-    socket.on('sendMessage', (data) => {
-      const { room, message } = data;
-      // Émettre le message à tous les clients dans la même salle
-      io.to(room).emit('receiveMessage', { message: message, sender: socket.id });
-    });
-  
+    console.log('a user connected');
+    socket.broadcast.emit('user connected');
     socket.on('disconnect', () => {
-      console.log(`User ${socket.id} disconnected`);
+        console.log('user disconnected');
+        socket.broadcast.emit('user disconnected');
     });
-  });
-  
+    socket.on('message', (msg) => {
+        console.log('message: ' + msg);
+        io.emit('message', msg);
+    });
+    
+    socket.on('room', (room, msg) => {
+        console.log('room: ' + room + ' message: ' + msg);
+        io.to(room).emit('message', msg);
+    });
 
-server.listen(3000, () => {
-  console.log('Server listening on :3000');
-});
+    socket.on('join', (room) => {
+        console.log('join room: ' + room);
+        socket.join(room);
+        io.to(room).emit('join', room);
+    });
+    socket.on('leave', (room) => {
+        console.log('leave room: ' + room);
+        socket.leave(room);
+        io.to(room).emit('leave', room);
+    });
+})
+
+
+server.listen(PORT, () => {
+    console.log('Server ip : http://' +ip.address() +":" + PORT);
+})
+
