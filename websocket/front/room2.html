@@ -156,11 +156,26 @@
             }).catch(error => { 
                 console.error('Error accessing media devices:', error); 
             });
-            
+
+            const messageInput = document.getElementById('messageInput');
+            const charLimitWarning = document.getElementById('charLimitWarning');
+
+            messageInput.addEventListener('input', function() {
+                if (messageInput.value.length >= 200) {
+                    charLimitWarning.style.visibility = 'visible';
+                    charLimitWarning.textContent = 'Limite de 200 caractères atteintes';
+                } else {
+                    charLimitWarning.style.visibility = 'hidden';
+                }
+            });
+
             document.getElementById('sendButton').addEventListener('click', function() {
-                const message = document.getElementById('messageInput').value;
-                socket.emit('sendMessage', { room: roomName, message: message });
-                document.getElementById('messageInput').value = ''; 
+                let message = messageInput.value.trim();
+                if (message) {
+                    socket.emit('sendMessage', { room: roomName, message: message });
+                    messageInput.value = '';
+                    charLimitWarning.style.visibility = 'hidden';
+                }
             });
 
             socket.on('receiveMessage', function(data) {
@@ -188,8 +203,9 @@
         </div>
         <div class="chat-container">
             <ul id="messages"></ul>
-            <input type="text" id="messageInput" placeholder="Type your message here...">
-            <button id="sendButton">Send</button>
+            <input type="text" id="messageInput" placeholder="Ecrire votre message..." maxlength="200">
+            <span id="charLimitWarning"></span>
+            <button id="sendButton">Envoyer</button>
         </div>
     </div>
 </body>
