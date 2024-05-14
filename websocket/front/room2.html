@@ -126,7 +126,7 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const socket = io();
+            const socket = io("https://omeflop.onrender.com");
             const roomName = 'Room2';
             let connectedPeers = {};
             let myVideoStream;
