@@ -42,6 +42,15 @@ app.get('/roomCounts', async (req, res) => {
   res.json({ Room1: room1Count, Room2: room2Count });
 });
 
+async function getFirstUserInRoom(room) {
+  const sockets = await io.in(room).allSockets();
+  if (sockets.size > 0) {
+    const firstSocketId = [...sockets][0]; // Sélectionne le premier utilisateur
+    return firstSocketId;
+  }
+  return null;
+}
+
 io.on('connection', (socket) => {
   let roomJoined;
 
@@ -56,6 +65,21 @@ io.on('connection', (socket) => {
         message: `A rejoint la salle.`,
         sender: 'System'
       });
+
+      // Obtenez l'ID du premier utilisateur dans la pièce et connectez-vous automatiquement à lui
+      const firstUserId = await getFirstUserInRoom(room);
+      if (firstUserId) {
+        io.to(socket.id).emit('receiveMessage', {
+          message: `Se connecte automatiquement à l'utilisateur existant.`,
+          sender: 'System'
+        });
+        io.to(firstUserId).emit('receiveMessage', {
+          message: `Se connecte automatiquement à ce nouvel utilisateur.`,
+          sender: 'System'
+        });
+        io.to(socket.id).emit('user-connected', firstUserId);
+        io.to(firstUserId).emit('user-connected', socket.id);
+      }
     } else {
       console.log(`Room ${room} is full`);
       io.to(socket.id).emit('roomFull', { room: room, status: 'full' });
