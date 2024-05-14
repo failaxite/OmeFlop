@@ -47,8 +47,8 @@
 <body>
     <div class="container">
         <h1>Welcome to the Chat Rooms</h1>
-        <button id="room1Btn" onclick="checkRoomAvailability('room1')">Join Room 1 (0/2)</button>
-        <button id="room2Btn" onclick="checkRoomAvailability('room2')">Join Room 2 (0/2)</button>
+        <button id="room1Btn" onclick="checkRoomAvailability('room1')">Rejoindre la Room 1 (0/2)</button>
+        <button id="room2Btn" onclick="checkRoomAvailability('room2')">Rejoindre la Room 2 (0/2)</button>
     </div>
 
     <script>
@@ -58,14 +58,14 @@
                     if (response.ok) {
                         window.location.href = `/${room}`;
                     } else {
-                        alert('This room is full. Please try another one.');
+                        alert('Cette room est pleine. Rejoins en une autre.');
                         setTimeout(() => {
                             window.location.href = '/';
                         }, 5000);
                     }
                 })
                 .catch(error => {
-                    console.error('Error checking room availability:', error);
+                    console.error('Erreur lors du check de la room:', error);
                     setTimeout(() => {
                         window.location.href = '/';
                     }, 5000);
@@ -75,7 +75,7 @@
         function updateRoomStatus(room, count) {
             const roomBtn = document.getElementById(`${room}Btn`);
             if (roomBtn) {
-                roomBtn.textContent = `Join Room ${room} (${count}/2)`;
+                roomBtn.textContent = `Rejoindre la room ${room} (${count}/2)`;
             }
         }
 
@@ -87,7 +87,7 @@
                     updateRoomStatus('room2', data.Room2);
                 })
                 .catch(error => {
-                    console.error('Error updating room counts:', error);
+                    console.error('Erreur actualisation des rooms:', error);
                 });
         }
 

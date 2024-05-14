@@ -22,7 +22,7 @@ app.get('/room1', async (req, res) => {
     if (sockets.size < 2) {
         res.sendFile(path.join(__dirname, '..', 'front', 'room1.html'));
     } else {
-        res.status(403).send('This room is full. Please try another one.');
+        res.status(403).send('Cette room est pleine. Rejoins en une autre.');
     }
 });
 
@@ -31,7 +31,7 @@ app.get('/room2', async (req, res) => {
     if (sockets.size < 2) {
         res.sendFile(path.join(__dirname, '..', 'front', 'room2.html'));
     } else {
-        res.status(403).send('This room is full. Please try another one.');
+        res.status(403).send('Cette room est pleine. Rejoins en une autre.');
     }
 });
 
@@ -42,16 +42,15 @@ app.get('/roomCounts', async (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    let roomJoined; // Variable pour garder la trace de la salle rejointe par l'utilisateur
+    let roomJoined;
 
     socket.on('joinRoom', async (room) => {
         const sockets = await io.in(room).allSockets();
         if (sockets.size < 2) {
             socket.join(room);
-            roomJoined = room; // Stocker la salle rejointe
+            roomJoined = room;
             console.log(`User ${socket.id} joined room: ${room}`);
             io.to(socket.id).emit('roomJoined', { room: room, status: 'joined' });
-            // Notifier les autres utilisateurs de la salle
             socket.to(room).emit('receiveMessage', {
                 message: `A rejoint la salle.`,
                 sender: 'System'
@@ -70,7 +69,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log(`User ${socket.id} disconnected`);
         if (roomJoined) {
-            // Notifier les autres utilisateurs de la salle
             io.in(roomJoined).emit('receiveMessage', {
                 message: `A quitté la salle.`,
                 sender: 'System'
