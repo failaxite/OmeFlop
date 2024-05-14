@@ -6,12 +6,7 @@ import path from 'path';
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Vous pouvez restreindre cela à votre domaine spécifique
-    methods: ["GET", "POST"]
-  }
-});
+const io = new Server(server);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
