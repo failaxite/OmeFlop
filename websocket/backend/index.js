@@ -11,7 +11,6 @@ const io = new Server(server);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Définir le chemin de base pour les fichiers statiques et HTML
 const basePath = path.join(__dirname, '..', 'front');
 app.use(express.static(path.join(basePath, 'public')));
 
@@ -36,6 +35,11 @@ app.get('/room2', async (req, res) => {
     }
 });
 
+app.get('/roomCounts', async (req, res) => {
+    const room1Count = (await io.in('Room1').allSockets()).size;
+    const room2Count = (await io.in('Room2').allSockets()).size;
+    res.json({ Room1: room1Count, Room2: room2Count });
+});
 
 io.on('connection', (socket) => {
     console.log(`User ${socket.id} connected`);
