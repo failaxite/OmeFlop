@@ -42,14 +42,20 @@ app.get('/roomCounts', async (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log(`User ${socket.id} connected`);
+    let roomJoined; // Variable pour garder la trace de la salle rejointe par l'utilisateur
 
     socket.on('joinRoom', async (room) => {
         const sockets = await io.in(room).allSockets();
         if (sockets.size < 2) {
             socket.join(room);
+            roomJoined = room; // Stocker la salle rejointe
             console.log(`User ${socket.id} joined room: ${room}`);
             io.to(socket.id).emit('roomJoined', { room: room, status: 'joined' });
+            // Notifier les autres utilisateurs de la salle
+            socket.to(room).emit('receiveMessage', {
+                message: `A rejoint la salle.`,
+                sender: 'System'
+            });
         } else {
             console.log(`Room ${room} is full`);
             io.to(socket.id).emit('roomFull', { room: room, status: 'full' });
@@ -63,8 +69,16 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`User ${socket.id} disconnected`);
+        if (roomJoined) {
+            // Notifier les autres utilisateurs de la salle
+            io.in(roomJoined).emit('receiveMessage', {
+                message: `A quitté la salle.`,
+                sender: 'System'
+            });
+        }
     });
 });
+
 
 server.listen(3000, () => {
   console.log('Server listening on :3000');
