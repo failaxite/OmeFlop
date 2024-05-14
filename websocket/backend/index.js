@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { ExpressPeerServer } from 'peer';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
@@ -8,9 +9,10 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Vous pouvez restreindre cela à votre domaine spécifique
+    origin: "*", // Remplacez par votre domaine spécifique si nécessaire
     methods: ["GET", "POST"]
-  }
+  },
+  transports: ['websocket', 'polling'] // Ajoutez cette ligne pour spécifier les transports
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +20,13 @@ const __dirname = path.dirname(__filename);
 
 const basePath = path.join(__dirname, '..', 'front');
 app.use(express.static(path.join(basePath, 'public')));
+
+const peerServer = ExpressPeerServer(server, {
+  debug: true,
+  path: '/'
+});
+
+app.use('/peerjs', peerServer);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(basePath, 'index.html'));

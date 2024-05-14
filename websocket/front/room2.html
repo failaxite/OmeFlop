@@ -126,14 +126,22 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const socket = io("https://omeflop.onrender.com");
+            const socket = io('https://omeflop.onrender.com', {
+                transports: ['websocket', 'polling'] // Ajoutez cette ligne pour spécifier les transports
+            });
             const roomName = 'Room2';
             let connectedPeers = {};
             let myVideoStream;
 
             socket.emit('joinRoom', roomName);
 
-            const peer = new Peer();
+            const peer = new Peer(undefined, {
+                host: '/',
+                port: 443, // Utilisez 443 pour HTTPS
+                path: '/peerjs',
+                secure: true // Assurez-vous que secure est vrai pour HTTPS
+            });
+
             peer.on('open', function(id) {
                 document.getElementById('peerIdDisplay').textContent = 'Ton ID: ' + id;
             });
