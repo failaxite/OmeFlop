@@ -133,113 +133,110 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-        const socket = io();
-        const roomName = 'Room2';
-        let connectedPeers = {};
+            const socket = io("https://omeflop.onrender.com");
+            const roomName = 'Room2';
+            let connectedPeers = {};
+            let myVideoStream;
 
-        socket.emit('joinRoom', roomName);
+            socket.emit('joinRoom', roomName);
 
-        const peer = new Peer();
-        peer.on('open', function(id) {
-            document.getElementById('peerIdDisplay').textContent = 'Ton ID: ' + id;
-            document.querySelector('.container').style.visibility = 'visible'; // Assurez que le chat est visible immédiatement
-        });
-
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-                handleStreamSuccess(stream);
-            })
-            .catch(error => {
-                console.error('Erreur d\'accès aux périphériques multimédias :', error);
-                alert("L'accès à la caméra et au microphone a été refusé, mais vous pouvez toujours participer au chat.");
-                document.getElementById('loading').style.display = 'none'; // Hide the loading screen
-                document.querySelector('.container').style.visibility = 'visible'; // Show the chat regardless of video and audio
+            const peer = new Peer();
+            peer.on('open', function(id) {
+                document.getElementById('peerIdDisplay').textContent = 'Ton ID: ' + id;
             });
 
-        function handleStreamSuccess(stream) {
-            let myVideoStream = stream;
-            const userVideo = document.createElement('video');
-            userVideo.srcObject = stream;
-            userVideo.muted = true;
-            userVideo.play().catch(e => console.error("Error playing local video", e));
-            addVideoStream(userVideo, stream, 'local');
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    myVideoStream = stream;
+                    const userVideo = document.createElement('video');
+                    userVideo.srcObject = stream;
+                    userVideo.muted = true;
+                    userVideo.addEventListener('loadedmetadata', () => {
+                        userVideo.play();
+                    });
+                    addVideoStream(userVideo, stream, 'local');
 
-            peer.on('call', call => {
-                call.answer(stream);
-                call.on('stream', remoteStream => {
-                    addVideoStream(document.createElement('video'), remoteStream, call.peer);
+                    peer.on('call', call => {
+                        call.answer(stream);
+                        call.on('stream', remoteStream => {
+                            addVideoStream(document.createElement('video'), remoteStream, call.peer);
+                        });
+                    });
+
+                    socket.on('user-connected', userId => {
+                        const call = peer.call(userId, stream);
+                        call.on('stream', otherStream => {
+                            addVideoStream(document.createElement('video'), otherStream, userId);
+                        });
+                    });
+
+                    socket.on('user-disconnected', userId => {
+                        removeVideoStream(userId);
+                        window.location.reload();
+                    });
+
+                    // Hide the loading screen and show the main container
+                    document.getElementById('loading').style.display = 'none';
+                    document.querySelector('.container').style.visibility = 'visible';
+                })
+                .catch(error => {
+                    console.error('Erreur d\'accès aux périphériques multimédias :', error);
                 });
+
+            function addVideoStream(video, stream, peerId) {
+                if (!connectedPeers[peerId]) {
+                    video.srcObject = stream;
+                    video.setAttribute('data-peer-id', peerId);
+                    video.addEventListener("loadedmetadata", () => {
+                        video.play();
+                    });
+                    document.querySelector('.video-container').appendChild(video);
+                    connectedPeers[peerId] = true;
+                }
+            }
+
+            function removeVideoStream(peerId) {
+                const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
+                if (videoElement) {
+                    videoElement.parentNode.removeChild(videoElement);
+                }
+                delete connectedPeers[peerId];
+            }
+
+            window.connectToPeer = function() {
+                const remotePeerId = document.getElementById('remotePeerId').value;
+                if (remotePeerId) {
+                    const call = peer.call(remotePeerId, myVideoStream);
+                    call.on('stream', otherStream => {
+                        addVideoStream(document.createElement('video'), otherStream, remotePeerId);
+                    });
+                } else {
+                    alert("Veuillez saisir un identifiant de pair valide.");
+                }
+            };
+
+            const messageInput = document.getElementById('messageInput');
+            document.getElementById('sendButton').addEventListener('click', function() {
+                let message = messageInput.value.trim();
+                if (message) {
+                    socket.emit('sendMessage', { room: roomName, message: message });
+                    messageInput.value = '';
+                }
             });
 
-            socket.on('user-connected', userId => {
-                const call = peer.call(userId, stream);
-                call.on('stream', otherStream => {
-                    addVideoStream(document.createElement('video'), otherStream, userId);
-                });
+            socket.on('receiveMessage', function(data) {
+                const messages = document.getElementById('messages');
+                const messageElement = document.createElement('li');
+                const sender = data.sender === socket.id ? 'Toi' : 'Étranger';
+                messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span> : ${data.message}`;
+                messages.appendChild(messageElement);
             });
 
-            socket.on('user-disconnected', userId => {
-                removeVideoStream(userId);
+            socket.on('roomFull', function() {
+                alert("Cette room est pleine. Rejoins en une autre.");
+                window.location.href = "/";
             });
-
-            document.getElementById('loading').style.display = 'none'; // Hide the loading screen
-            document.querySelector('.container').style.visibility = 'visible'; // Ensure the entire container is visible
-        }
-
-        function addVideoStream(video, stream, peerId) {
-            if (!connectedPeers[peerId]) {
-                video.srcObject = stream;
-                video.setAttribute('data-peer-id', peerId);
-                video.addEventListener("loadedmetadata", () => {
-                    video.play().catch(e => console.error(`Error playing video from ${peerId}`, e));
-                });
-                document.querySelector('.video-container').appendChild(video);
-                connectedPeers[peerId] = true;
-            }
-        }
-
-        function removeVideoStream(peerId) {
-            const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
-            if (videoElement) {
-                videoElement.parentNode.removeChild(videoElement);
-            }
-            delete connectedPeers[peerId];
-        }
-
-        window.connectToPeer = function() {
-            const remotePeerId = document.getElementById('remotePeerId').value;
-            if (remotePeerId) {
-                const call = peer.call(remotePeerId, myVideoStream);
-                call.on('stream', otherStream => {
-                    addVideoStream(document.createElement('video'), otherStream, remotePeerId);
-                });
-            } else {
-                alert("Veuillez saisir un identifiant de pair valide.");
-            }
-        };
-
-        const messageInput = document.getElementById('messageInput');
-        document.getElementById('sendButton').addEventListener('click', function() {
-            let message = messageInput.value.trim();
-            if (message) {
-                socket.emit('sendMessage', { room: roomName, message: message });
-                messageInput.value = '';
-            }
         });
-
-        socket.on('receiveMessage', function(data) {
-            const messages = document.getElementById('messages');
-            const messageElement = document.createElement('li');
-            const sender = data.sender === socket.id ? 'Toi' : 'Étranger';
-            messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span> : ${data.message}`;
-            messages.appendChild(messageElement);
-        });
-
-        socket.on('roomFull', function() {
-            alert("Cette room est pleine. Rejoins en une autre.");
-            window.location.href = "/";
-        });
-    });
     </script>
         
 </body>
