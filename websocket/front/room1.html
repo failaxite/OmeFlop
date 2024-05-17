@@ -12,7 +12,6 @@
         .other-message {
             color: blue;
         }
-        
         body, html {
             margin: 0;
             padding: 0;
@@ -33,7 +32,6 @@
             align-items: center;
             padding: 20px;
         }
-
         .video-container video {
             width: 48%; 
             height: auto;
@@ -44,8 +42,17 @@
             margin: 1%; 
         }
 
-        #messages, #messageInput, #remotePeerId {
+        .button{
+            display: flex;
+            flex-direction: row;
+            gap: 10%;
+        }
+
+        #messages, #messageInput  {
             width: calc(100% - 120px);
+        }
+
+        #messages, #messageInput, #remotePeerId {
             padding: 8px;
             font-size: 1.2em;
             border: 1px solid #ccc;
@@ -59,7 +66,7 @@
             overflow-y: auto;
             background-color: #fff;
         }
-        #sendButton, button {
+        #sendButton , #IDbutton, button {
             width: 100px;
             height: 40px;
             background-color: #007bff;
@@ -100,30 +107,37 @@
             background-color: rgba(255, 255, 255, 0.8);
             z-index: 999;
         }
+
+        
+
         @media (orientation: portrait) {
             .container {
                 flex-direction: column;
             }
-
+            
             .video-container{
                 flex-direction: row;
             }
-
+            
             .video-container video {
                 width: 100% !important;
             }
-
+            
             #messageInput, #sendButton, #messages {
                 width: 100%;
             }
-            #messageInput, #sendButton {
+            
+            #messageInput, #sendButton , #IDbutton {
                 height: 5vh;
                 font-size: xxx-large;
             }
-            #sendButton {
-                width: 30%;
+            
+            #sendButton , #IDbutton{
+                width: 100%;
                 font-size: xxx-large;
+                padding: 10%;
             }
+            
             #messages {
                 height: 20vh;
                 font-size: xxx-large;
@@ -143,7 +157,10 @@
         <div class="chat-container">
             <ul id="messages"></ul>
             <input type="text" id="messageInput" placeholder="Type your message here..." maxlength="200">
-            <button id="sendButton">Send</button>
+            <div class="button">
+                <button id="sendButton">Send</button>
+                <button id="IDbutton">ID</button>
+            </div>
         </div>
     </div>
     <script>
@@ -215,7 +232,7 @@
                         window.location.reload();
                     });
 
-                    // Hide the loading screen and show the main container
+                    
                     document.getElementById('loading').style.display = 'none';
                     document.querySelector('.container').style.visibility = 'visible';
                 })
@@ -256,41 +273,50 @@
                     } 
                 }
 
+                
+                document.getElementById('IDbutton').addEventListener('click', () => {
+                    const peerDisplay = document.getElementById('peerIdDisplay');
+                    const connectContainer = document.getElementById('connectPeerContainer');
+                    peerDisplay.style.display = (peerDisplay.style.display === 'none' ? 'block' : 'none');
+                    connectContainer.style.display = (connectContainer.style.display === 'none' ? 'block' : 'none');
+                });
 
-            window.connectToPeer = function() {
-                const remotePeerId = document.getElementById('remotePeerId').value;
-                if (remotePeerId) {
-                    const call = peer.call(remotePeerId, myVideoStream);
-                    call.on('stream', otherStream => {
-                        addVideoStream(document.createElement('video'), otherStream, remotePeerId);
-                    });
-                } else {
-                    alert("Veuillez saisir un identifiant de pair valide.");
-                }
-            };
+                window.connectToPeer = function() {
+                    const remotePeerId = document.getElementById('remotePeerId').value;
+                    if (remotePeerId) {
+                        const call = peer.call(remotePeerId, myVideoStream);
+                        call.on('stream', otherStream => {
+                            addVideoStream(document.createElement('video'), otherStream, remotePeerId);
+                        });
+                    } else {
+                        alert("Veuillez saisir un identifiant de pair valide.");
+                    }
+                };
 
-            const messageInput = document.getElementById('messageInput');
-            document.getElementById('sendButton').addEventListener('click', function() {
-                let message = messageInput.value.trim();
-                if (message) {
-                    socket.emit('sendMessage', { room: roomName, message: message });
-                    messageInput.value = '';
-                }
+                const messageInput = document.getElementById('messageInput');
+                document.getElementById('sendButton').addEventListener('click', function() {
+                    let message = messageInput.value.trim();
+                    if (message) {
+                        socket.emit('sendMessage', { room: roomName, message: message });
+                        messageInput.value = '';
+                    }
+                });
+
+                socket.on('receiveMessage', function(data) {
+                    const messages = document.getElementById('messages');
+                    const messageElement = document.createElement('li');
+                    const sender = data.sender === socket.id ? 'Toi' : 'Étranger';
+                    messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span> : ${data.message}`;
+                    messages.appendChild(messageElement);
+                });
+
+                socket.on('roomFull', function() {
+                    alert("Cette room est pleine. Rejoins en une autre.");
+                    window.location.href = "/";
+                });
             });
-
-            socket.on('receiveMessage', function(data) {
-                const messages = document.getElementById('messages');
-                const messageElement = document.createElement('li');
-                const sender = data.sender === socket.id ? 'Toi' : 'Étranger';
-                messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span> : ${data.message}`;
-                messages.appendChild(messageElement);
-            });
-
-            socket.on('roomFull', function() {
-                alert("Cette room est pleine. Rejoins en une autre.");
-                window.location.href = "/";
-            });
-        });
     </script>
 </body>
 </html>
+
+
