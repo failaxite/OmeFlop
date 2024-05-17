@@ -33,13 +33,17 @@
             align-items: center;
             padding: 20px;
         }
+
         .video-container video {
-            max-width: 100%;
-            max-height: 70vh;
+            width: 48%; 
+            height: auto;
+            background-color: rgb(12, 12, 12);
             border: 1px solid #ccc;
             box-shadow: 0 2px 6px #0003;
             object-fit: contain;
+            margin: 1%; 
         }
+
         #messages, #messageInput, #remotePeerId {
             width: calc(100% - 120px);
             padding: 8px;
@@ -100,6 +104,15 @@
             .container {
                 flex-direction: column;
             }
+
+            .video-container{
+                flex-direction: row;
+            }
+
+            .video-container video {
+                width: 100% !important;
+            }
+
             #messageInput, #sendButton, #messages {
                 width: 100%;
             }
@@ -201,25 +214,39 @@
                     console.error('Erreur d\'accès aux périphériques multimédias :', error);
                 });
 
-            function addVideoStream(video, stream, peerId) {
-                if (!connectedPeers[peerId]) {
-                    video.srcObject = stream;
-                    video.setAttribute('data-peer-id', peerId);
-                    video.addEventListener("loadedmetadata", () => {
-                        video.play();
-                    });
-                    document.querySelector('.video-container').appendChild(video);
-                    connectedPeers[peerId] = true;
-                }
-            }
+                function addVideoStream(video, stream, peerId) {
+                    if (!connectedPeers[peerId]) {
+                        video.srcObject = stream;
+                        video.setAttribute('data-peer-id', peerId);
+                        video.play().catch(e => console.error(`Error playing video from ${peerId}`, e));
+                        document.querySelector('.video-container').appendChild(video);
+                        connectedPeers[peerId] = true;
 
-            function removeVideoStream(peerId) {
-                const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
-                if (videoElement) {
-                    videoElement.parentNode.removeChild(videoElement);
+                        adjustVideoSize(); // Ajustez la taille à chaque ajout de vidéo
+                    }
                 }
-                delete connectedPeers[peerId];
-            }
+
+                function removeVideoStream(peerId) {
+                    const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
+                    if (videoElement) {
+                        videoElement.parentNode.removeChild(videoElement);
+                        delete connectedPeers[peerId];
+                        adjustVideoSize(); // Ajustez la taille après la suppression
+                    }
+                }
+
+                function adjustVideoSize() {
+                    const videos = document.querySelectorAll('.video-container video');
+                    if (videos.length > 1) {
+                        videos.forEach(video => {
+                            video.style.width = "40%"; 
+                            video.style.height = "auto"; 
+                            video.style.maxHeight = "35vh";
+                             
+                        });
+                    } 
+                }
+
 
             window.connectToPeer = function() {
                 const remotePeerId = document.getElementById('remotePeerId').value;
