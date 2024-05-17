@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Room 2</title>
+    <title>Room 1</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
     <style>
@@ -41,18 +41,13 @@
             object-fit: contain;
             margin: 1%; 
         }
-
-        .button{
+        .button {
             display: flex;
             flex-direction: row;
-            gap: 10%;
+            gap: 10px;
         }
-
-        #messages, #messageInput  {
-            width: calc(100% - 120px);
-        }
-
         #messages, #messageInput, #remotePeerId {
+            width: calc(100% - 120px);
             padding: 8px;
             font-size: 1.2em;
             border: 1px solid #ccc;
@@ -66,7 +61,7 @@
             overflow-y: auto;
             background-color: #fff;
         }
-        #sendButton , #IDbutton, button {
+        #sendButton, #toggleCameraButton, #IDbutton, button {
             width: 100px;
             height: 40px;
             background-color: #007bff;
@@ -107,40 +102,28 @@
             background-color: rgba(255, 255, 255, 0.8);
             z-index: 999;
         }
-
-        
-
         @media (orientation: portrait) {
             .container {
                 flex-direction: column;
             }
-            
-            .video-container{
+            .video-container {
                 flex-direction: row;
             }
-            
             .video-container video {
                 width: 100% !important;
             }
-            
             #messageInput, #sendButton, #messages {
                 width: 100%;
             }
-            
-            #messageInput, #sendButton , #IDbutton {
+            #messageInput, #sendButton {
                 height: 5vh;
-                font-size: xxx-large;
+                font-size: 1.2em;
             }
-            
-            #sendButton , #IDbutton{
-                width: 100%;
-                font-size: xxx-large;
-                padding: 10%;
+            #sendButton {
+                width: 30%;
             }
-            
             #messages {
-                height: 20vh;
-                font-size: xxx-large;
+                height: 40vh;
             }
         }
     </style>
@@ -159,7 +142,9 @@
             <input type="text" id="messageInput" placeholder="Type your message here..." maxlength="200">
             <div class="button">
                 <button id="sendButton">Send</button>
-                <button id="IDbutton">ID</button>
+                <button id="toggleCameraButton" onclick="toggleCamera()">Camera</button>
+                <button id="IDbutton" onclick="toggleIDDisplay()">ID</button>
+                <label>Volume: <input type="range" id="volumeControl" min="0" max="100" value="100" onchange="adjustVolume(event)"></label>
             </div>
         </div>
     </div>
@@ -199,7 +184,7 @@
             });
 
             peer.on('open', function(id) {
-                document.getElementById('peerIdDisplay').textContent = 'Ton ID: ' + id;
+                document.getElementById('peerIdDisplay').textContent = 'Your ID: ' + id;
             });
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -208,9 +193,7 @@
                     const userVideo = document.createElement('video');
                     userVideo.srcObject = stream;
                     userVideo.muted = true;
-                    userVideo.addEventListener('loadedmetadata', () => {
-                        userVideo.play();
-                    });
+                    userVideo.play();
                     addVideoStream(userVideo, stream, 'local');
 
                     peer.on('call', call => {
@@ -232,91 +215,92 @@
                         window.location.reload();
                     });
 
-                    
+                    document.getElementById('toggleCameraButton').addEventListener('click', toggleCamera);
+
+                    document.getElementById('volumeControl').addEventListener('input', adjustVolume);
+
+                    document.getElementById('IDbutton').addEventListener('click', toggleIDDisplay);
+
                     document.getElementById('loading').style.display = 'none';
                     document.querySelector('.container').style.visibility = 'visible';
                 })
                 .catch(error => {
-                    console.error('Erreur d\'accès aux périphériques multimédias :', error);
+                    console.error('Error accessing media devices:', error);
                 });
 
-                function addVideoStream(video, stream, peerId) {
-                    if (!connectedPeers[peerId]) {
-                        video.srcObject = stream;
-                        video.setAttribute('data-peer-id', peerId);
-                        video.play().catch(e => console.error(`Error playing video from ${peerId}`, e));
-                        document.querySelector('.video-container').appendChild(video);
-                        connectedPeers[peerId] = true;
-
-                        adjustVideoSize(); // Ajustez la taille à chaque ajout de vidéo
-                    }
+            function toggleCamera() {
+                if (myVideoStream) {
+                    const videoTrack = myVideoStream.getVideoTracks()[0];
+                    videoTrack.enabled = !videoTrack.enabled;
                 }
+            }
 
-                function removeVideoStream(peerId) {
-                    const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
-                    if (videoElement) {
-                        videoElement.parentNode.removeChild(videoElement);
-                        delete connectedPeers[peerId];
-                        adjustVideoSize(); // Ajustez la taille après la suppression
-                    }
+            function adjustVolume(event) {
+                const volume = event.target.value;
+                if (myVideoStream) {
+                    const audioTrack = myVideoStream.getAudioTracks()[0];
+                    audioTrack.enabled = !(volume === '0');
                 }
+            }
 
-                function adjustVideoSize() {
-                    const videos = document.querySelectorAll('.video-container video');
-                    if (videos.length > 1) {
-                        videos.forEach(video => {
-                            video.style.width = "40%"; 
-                            video.style.height = "auto"; 
-                            video.style.maxHeight = "35vh";
-                             
-                        });
-                    } 
+            function toggleIDDisplay() {
+                const peerDisplay = document.getElementById('peerIdDisplay');
+                const connectContainer = document.getElementById('connectPeerContainer');
+                peerDisplay.style.display = (peerDisplay.style.display === 'none' ? 'block' : 'none');
+                connectContainer.style.display = (connectContainer.style.display === 'none' ? 'block' : 'none');
+            }
+
+            function addVideoStream(video, stream, peerId) {
+                if (!connectedPeers[peerId]) {
+                    video.srcObject = stream;
+                    video.play().catch(e => console.error(`Error playing video from ${peerId}`, e));
+                    document.querySelector('.video-container').appendChild(video);
+                    connectedPeers[peerId] = true;
                 }
+            }
 
-                
-                document.getElementById('IDbutton').addEventListener('click', () => {
-                    const peerDisplay = document.getElementById('peerIdDisplay');
-                    const connectContainer = document.getElementById('connectPeerContainer');
-                    peerDisplay.style.display = (peerDisplay.style.display === 'none' ? 'block' : 'none');
-                    connectContainer.style.display = (connectContainer.style.display === 'none' ? 'block' : 'none');
-                });
+            function removeVideoStream(peerId) {
+                const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
+                if (videoElement) {
+                    videoElement.parentNode.removeChild(videoElement);
+                    delete connectedPeers[peerId];
+                }
+            }
 
-                window.connectToPeer = function() {
-                    const remotePeerId = document.getElementById('remotePeerId').value;
-                    if (remotePeerId) {
-                        const call = peer.call(remotePeerId, myVideoStream);
-                        call.on('stream', otherStream => {
-                            addVideoStream(document.createElement('video'), otherStream, remotePeerId);
-                        });
-                    } else {
-                        alert("Veuillez saisir un identifiant de pair valide.");
-                    }
-                };
+            window.connectToPeer = function() {
+                const remotePeerId = document.getElementById('remotePeerId').value;
+                if (remotePeerId) {
+                    const call = peer.call(remotePeerId, myVideoStream);
+                    call.on('stream', otherStream => {
+                        addVideoStream(document.createElement('video'), otherStream, remotePeerId);
+                    });
+                } else {
+                    alert("Please enter a valid Peer ID.");
+                }
+            };
 
-                const messageInput = document.getElementById('messageInput');
-                document.getElementById('sendButton').addEventListener('click', function() {
-                    let message = messageInput.value.trim();
-                    if (message) {
-                        socket.emit('sendMessage', { room: roomName, message: message });
-                        messageInput.value = '';
-                    }
-                });
-
-                socket.on('receiveMessage', function(data) {
-                    const messages = document.getElementById('messages');
-                    const messageElement = document.createElement('li');
-                    const sender = data.sender === socket.id ? 'Toi' : 'Étranger';
-                    messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span> : ${data.message}`;
-                    messages.appendChild(messageElement);
-                });
-
-                socket.on('roomFull', function() {
-                    alert("Cette room est pleine. Rejoins en une autre.");
-                    window.location.href = "/";
-                });
+            const messageInput = document.getElementById('messageInput');
+            document.getElementById('sendButton').addEventListener('click', function() {
+                let message = messageInput.value.trim();
+                if (message) {
+                    socket.emit('sendMessage', { room: roomName, message: message });
+                    messageInput.value = '';
+                }
             });
+
+            socket.on('receiveMessage', function(data) {
+                const messages = document.getElementById('messages');
+                const messageElement = document.createElement('li');
+                const sender = data.sender === socket.id ? 'You' : 'Stranger';
+                messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span>: ${data.message}`;
+                messages.appendChild(messageElement);
+            });
+
+            socket.on('roomFull', function() {
+                alert("This room is full. Please join another.");
+                window.location.href = "/";
+            });
+        });
     </script>
 </body>
 </html>
-
-

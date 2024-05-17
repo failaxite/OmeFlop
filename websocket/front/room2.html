@@ -12,7 +12,6 @@
         .other-message {
             color: blue;
         }
-        
         body, html {
             margin: 0;
             padding: 0;
@@ -33,7 +32,6 @@
             align-items: center;
             padding: 20px;
         }
-
         .video-container video {
             width: 48%; 
             height: auto;
@@ -43,7 +41,11 @@
             object-fit: contain;
             margin: 1%; 
         }
-
+        .button {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+        }
         #messages, #messageInput, #remotePeerId {
             width: calc(100% - 120px);
             padding: 8px;
@@ -59,7 +61,7 @@
             overflow-y: auto;
             background-color: #fff;
         }
-        #sendButton, button {
+        #sendButton, #toggleCameraButton, #IDbutton, button {
             width: 100px;
             height: 40px;
             background-color: #007bff;
@@ -104,29 +106,24 @@
             .container {
                 flex-direction: column;
             }
-
-            .video-container{
+            .video-container {
                 flex-direction: row;
             }
-
             .video-container video {
                 width: 100% !important;
             }
-
             #messageInput, #sendButton, #messages {
                 width: 100%;
             }
             #messageInput, #sendButton {
                 height: 5vh;
-                font-size: xxx-large;
+                font-size: 1.2em;
             }
             #sendButton {
                 width: 30%;
-                font-size: xxx-large;
             }
             #messages {
-                height: 20vh;
-                font-size: xxx-large;
+                height: 40vh;
             }
         }
     </style>
@@ -143,13 +140,18 @@
         <div class="chat-container">
             <ul id="messages"></ul>
             <input type="text" id="messageInput" placeholder="Type your message here..." maxlength="200">
-            <button id="sendButton">Send</button>
+            <div class="button">
+                <button id="sendButton">Send</button>
+                <button id="toggleCameraButton" onclick="toggleCamera()">Camera</button>
+                <button id="IDbutton" onclick="toggleIDDisplay()">ID</button>
+                <label>Volume: <input type="range" id="volumeControl" min="0" max="100" value="100" onchange="adjustVolume(event)"></label>
+            </div>
         </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const socket = io("https://omeflop.onrender.com");
-            const roomName = 'Room1';
+            const roomName = 'Room2';
             let connectedPeers = {};
             let myVideoStream;
 
@@ -182,7 +184,7 @@
             });
 
             peer.on('open', function(id) {
-                document.getElementById('peerIdDisplay').textContent = 'Ton ID: ' + id;
+                document.getElementById('peerIdDisplay').textContent = 'Your ID: ' + id;
             });
 
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -191,9 +193,7 @@
                     const userVideo = document.createElement('video');
                     userVideo.srcObject = stream;
                     userVideo.muted = true;
-                    userVideo.addEventListener('loadedmetadata', () => {
-                        userVideo.play();
-                    });
+                    userVideo.play();
                     addVideoStream(userVideo, stream, 'local');
 
                     peer.on('call', call => {
@@ -215,47 +215,57 @@
                         window.location.reload();
                     });
 
-                    // Hide the loading screen and show the main container
+                    document.getElementById('toggleCameraButton').addEventListener('click', toggleCamera);
+
+                    document.getElementById('volumeControl').addEventListener('input', adjustVolume);
+
+                    document.getElementById('IDbutton').addEventListener('click', toggleIDDisplay);
+
                     document.getElementById('loading').style.display = 'none';
                     document.querySelector('.container').style.visibility = 'visible';
                 })
                 .catch(error => {
-                    console.error('Erreur d\'accès aux périphériques multimédias :', error);
+                    console.error('Error accessing media devices:', error);
                 });
 
-                function addVideoStream(video, stream, peerId) {
-                    if (!connectedPeers[peerId]) {
-                        video.srcObject = stream;
-                        video.setAttribute('data-peer-id', peerId);
-                        video.play().catch(e => console.error(`Error playing video from ${peerId}`, e));
-                        document.querySelector('.video-container').appendChild(video);
-                        connectedPeers[peerId] = true;
-
-                        adjustVideoSize(); // Ajustez la taille à chaque ajout de vidéo
-                    }
+            function toggleCamera() {
+                if (myVideoStream) {
+                    const videoTrack = myVideoStream.getVideoTracks()[0];
+                    videoTrack.enabled = !videoTrack.enabled;
                 }
+            }
 
-                function removeVideoStream(peerId) {
-                    const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
-                    if (videoElement) {
-                        videoElement.parentNode.removeChild(videoElement);
-                        delete connectedPeers[peerId];
-                        adjustVideoSize(); // Ajustez la taille après la suppression
-                    }
+            function adjustVolume(event) {
+                const volume = event.target.value;
+                if (myVideoStream) {
+                    const audioTrack = myVideoStream.getAudioTracks()[0];
+                    audioTrack.enabled = !(volume === '0');
                 }
+            }
 
-                function adjustVideoSize() {
-                    const videos = document.querySelectorAll('.video-container video');
-                    if (videos.length > 1) {
-                        videos.forEach(video => {
-                            video.style.width = "40%"; 
-                            video.style.height = "auto"; 
-                            video.style.maxHeight = "35vh";
-                             
-                        });
-                    } 
+            function toggleIDDisplay() {
+                const peerDisplay = document.getElementById('peerIdDisplay');
+                const connectContainer = document.getElementById('connectPeerContainer');
+                peerDisplay.style.display = (peerDisplay.style.display === 'none' ? 'block' : 'none');
+                connectContainer.style.display = (connectContainer.style.display === 'none' ? 'block' : 'none');
+            }
+
+            function addVideoStream(video, stream, peerId) {
+                if (!connectedPeers[peerId]) {
+                    video.srcObject = stream;
+                    video.play().catch(e => console.error(`Error playing video from ${peerId}`, e));
+                    document.querySelector('.video-container').appendChild(video);
+                    connectedPeers[peerId] = true;
                 }
+            }
 
+            function removeVideoStream(peerId) {
+                const videoElement = document.querySelector(`video[data-peer-id="${peerId}"]`);
+                if (videoElement) {
+                    videoElement.parentNode.removeChild(videoElement);
+                    delete connectedPeers[peerId];
+                }
+            }
 
             window.connectToPeer = function() {
                 const remotePeerId = document.getElementById('remotePeerId').value;
@@ -265,7 +275,7 @@
                         addVideoStream(document.createElement('video'), otherStream, remotePeerId);
                     });
                 } else {
-                    alert("Veuillez saisir un identifiant de pair valide.");
+                    alert("Please enter a valid Peer ID.");
                 }
             };
 
@@ -281,13 +291,13 @@
             socket.on('receiveMessage', function(data) {
                 const messages = document.getElementById('messages');
                 const messageElement = document.createElement('li');
-                const sender = data.sender === socket.id ? 'Toi' : 'Étranger';
-                messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span> : ${data.message}`;
+                const sender = data.sender === socket.id ? 'You' : 'Stranger';
+                messageElement.innerHTML = `<span class="${data.sender === socket.id ? 'own-message' : 'other-message'}">${sender}</span>: ${data.message}`;
                 messages.appendChild(messageElement);
             });
 
             socket.on('roomFull', function() {
-                alert("Cette room est pleine. Rejoins en une autre.");
+                alert("This room is full. Please join another.");
                 window.location.href = "/";
             });
         });
