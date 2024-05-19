@@ -68,11 +68,11 @@ io.on('connection', (socket) => {
       console.log(`User ${socket.id} joined room: ${room}`);
       socket.emit('roomJoined', { room: room, status: 'joined' });
       socket.to(room).emit('receiveMessage', {
-        message: `${socket.id} has joined the room.`,
+        message: `Un nouvelle utulisateur a rejoint la salle`,
         sender: 'System'
       });
     } else {
-      console.log(`Room ${room} is full`);
+      console.log(`la salle ${room} est complete`);
       socket.emit('roomFull', { room: room, status: 'full' });
     }
   });
