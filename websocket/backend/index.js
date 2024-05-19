@@ -10,7 +10,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://omeflop.onrender.com", 
+    origin: "https://omeflop.onrender.com",
     methods: ["GET", "POST"]
   }
 });
@@ -66,20 +66,20 @@ io.on('connection', (socket) => {
       socket.join(room);
       roomJoined = room;
       console.log(`User ${socket.id} joined room: ${room}`);
-      io.to(socket.id).emit('roomJoined', { room: room, status: 'joined' });
+      socket.emit('roomJoined', { room: room, status: 'joined' });
       socket.to(room).emit('receiveMessage', {
         message: `${socket.id} has joined the room.`,
         sender: 'System'
       });
     } else {
       console.log(`Room ${room} is full`);
-      io.to(socket.id).emit('roomFull', { room: room, status: 'full' });
+      socket.emit('roomFull', { room: room, status: 'full' });
     }
   });
 
   socket.on('sendMessage', (data) => {
     const { room, message } = data;
-    io.to(room).emit('receiveMessage', { message: message, sender: socket.id });
+    socket.to(room).emit('receiveMessage', { message: message, sender: socket.id });
   });
 
   socket.on('disconnect', () => {
@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
         message: `${socket.id} has left the room.`,
         sender: 'System'
       });
-      socket.to(roomJoined).broadcast.emit('user-disconnected', socket.id);
+      socket.to(roomJoined).emit('user-disconnected', socket.id);
     }
   });
 });
