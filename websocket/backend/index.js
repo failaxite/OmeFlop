@@ -4,11 +4,13 @@ import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
+let totalConnections = 0;
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Vous pouvez restreindre cela à votre domaine spécifique
+    origin: "http://localhost:3000", 
     methods: ["GET", "POST"]
   }
 });
@@ -44,10 +46,18 @@ app.get('/room2', async (req, res) => {
 app.get('/roomCounts', async (req, res) => {
   const room1Count = (await io.in('Room1').allSockets()).size;
   const room2Count = (await io.in('Room2').allSockets()).size;
-  res.json({ Room1: room1Count, Room2: room2Count });
+  res.json({ Room1: room1Count, Room2: room2Count, Total: totalConnections });
 });
 
 io.on('connection', (socket) => {
+  totalConnections++;
+  io.emit('updateTotalConnections', totalConnections);
+
+  socket.on('disconnect', () => {
+    totalConnections--;
+    io.emit('updateTotalConnections', totalConnections);
+  });
+
   let roomJoined;
 
   socket.on('joinRoom', async (room) => {
@@ -58,7 +68,7 @@ io.on('connection', (socket) => {
       console.log(`User ${socket.id} joined room: ${room}`);
       io.to(socket.id).emit('roomJoined', { room: room, status: 'joined' });
       socket.to(room).emit('receiveMessage', {
-        message: `A rejoint la salle.`,
+        message: `${socket.id} has joined the room.`,
         sender: 'System'
       });
     } else {
@@ -76,10 +86,10 @@ io.on('connection', (socket) => {
     console.log(`User ${socket.id} disconnected`);
     if (roomJoined) {
       io.in(roomJoined).emit('receiveMessage', {
-        message: `A quitté la salle.`,
+        message: `${socket.id} has left the room.`,
         sender: 'System'
       });
-      socket.to(roomJoined).emit('user-disconnected', socket.id);
+      socket.to(roomJoined).broadcast.emit('user-disconnected', socket.id);
     }
   });
 });
