@@ -11,8 +11,8 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "https://omeflop.onrender.com",
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,7 +28,7 @@ app.get('/', (req, res) => {
 app.get('/room1', async (req, res) => {
   const sockets = await io.in('Room1').allSockets();
   if (sockets.size < 2) {
-    res.sendFile(path.join(__dirname, '..', 'front', 'room1.html'));
+    res.sendFile(path.join(basePath, 'room1.html'));
   } else {
     res.redirect('/?full=true');
   }
@@ -37,7 +37,7 @@ app.get('/room1', async (req, res) => {
 app.get('/room2', async (req, res) => {
   const sockets = await io.in('Room2').allSockets();
   if (sockets.size < 2) {
-    res.sendFile(path.join(__dirname, '..', 'front', 'room2.html'));
+    res.sendFile(path.join(basePath, 'room2.html'));
   } else {
     res.redirect('/?full=true');
   }
@@ -53,11 +53,6 @@ io.on('connection', (socket) => {
   totalConnections++;
   io.emit('updateTotalConnections', totalConnections);
 
-  socket.on('disconnect', () => {
-    totalConnections--;
-    io.emit('updateTotalConnections', totalConnections);
-  });
-
   let roomJoined;
 
   socket.on('joinRoom', async (room) => {
@@ -66,30 +61,32 @@ io.on('connection', (socket) => {
       socket.join(room);
       roomJoined = room;
       console.log(`User ${socket.id} joined room: ${room}`);
-      socket.emit('roomJoined', { room: room, status: 'joined' });
+      socket.emit('roomJoined', { room, status: 'joined' });
       socket.to(room).emit('receiveMessage', {
-        message: `Un nouvelle utulisateur a rejoint la salle`,
-        sender: 'System'
+        message: 'Un nouvel utilisateur a rejoint la salle.',
+        sender: 'System',
       });
     } else {
-      console.log(`la salle ${room} est complete`);
-      socket.emit('roomFull', { room: room, status: 'full' });
+      console.log(`La salle ${room} est complète`);
+      socket.emit('roomFull', { room, status: 'full' });
     }
   });
 
   socket.on('sendMessage', (data) => {
     const { room, message } = data;
-    socket.to(room).emit('receiveMessage', { message: message, sender: socket.id });
+    socket.to(room).emit('receiveMessage', { message, sender: socket.id });
   });
 
   socket.on('disconnect', () => {
-    console.log(`User ${socket.id} disconnected`);
+    totalConnections--;
+    io.emit('updateTotalConnections', totalConnections);
+
     if (roomJoined) {
       io.in(roomJoined).emit('receiveMessage', {
-        message: `${socket.id} has left the room.`,
-        sender: 'System'
+        message: `${socket.id} a quitté la salle.`,
+        sender: 'System',
       });
-      socket.to(roomJoined).emit('user-disconnected', socket.id);
+      socket.to(roomJoined).emit('userDisconnected', socket.id);
     }
   });
 });
